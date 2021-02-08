@@ -50,8 +50,8 @@ public class Robot extends TimedRobot {
   PowerDistributionPanel pdp = new PowerDistributionPanel();
 
   VictorSPX[] intake = new VictorSPX[3];
-  SlewRateLimiter yFilter = new SlewRateLimiter(2.8);
-  SlewRateLimiter zFilter = new SlewRateLimiter(2.8);
+  SlewRateLimiter yFilter = new SlewRateLimiter(5);
+  SlewRateLimiter zFilter = new SlewRateLimiter(5);
  
 
   /**
