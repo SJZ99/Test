@@ -32,7 +32,7 @@ import edu.wpi.first.wpiutil.math.MathUtil;
  */
 public class Robot extends TimedRobot {
 
-  public static boolean isJoystick = false;
+  public static boolean isJoystick = true;
 
   public static boolean isSyzygy = true; 
 
@@ -50,8 +50,8 @@ public class Robot extends TimedRobot {
   PowerDistributionPanel pdp = new PowerDistributionPanel();
 
   VictorSPX[] intake = new VictorSPX[3];
-  // SlewRateLimiter yFilter = new SlewRateLimiter(1.8);
-  // SlewRateLimiter zFilter = new SlewRateLimiter(1.8);
+  SlewRateLimiter yFilter = new SlewRateLimiter(2.8);
+  SlewRateLimiter zFilter = new SlewRateLimiter(2.8);
  
 
   /**
@@ -161,7 +161,7 @@ public class Robot extends TimedRobot {
   @Override
   public void teleopPeriodic() {
     if(isJoystick){
-      drive.arcadeDrive(joy.getY()*-0.8, joy.getZ()*-0.6);
+      drive.arcadeDrive(yFilter.calculate(joy.getY())*-0.8, zFilter.calculate(joy.getZ())*-0.6);
       if(joy.getRawButton(7) && pdp.getCurrent(9) < 35){
         intake[0].set(ControlMode.PercentOutput, -0.8);
         intake[1].set(ControlMode.PercentOutput, 0.5);
@@ -178,8 +178,8 @@ public class Robot extends TimedRobot {
       // drive.arcadeDrive(joy.getY() * 0.7, joy.getZ()* -0.5);
       // drive.curvatureDrive(joy.getY()*0.6, joy.getZ()*0.5, joy.getTrigger());
     }else{
-      double x = MathUtil.clamp(controller.getRawAxis(2), -1, 1) * 0.55;
-      double y = MathUtil.clamp(controller.getRawAxis(1), -1, 1) * -0.75;
+      double x = zFilter.calculate(MathUtil.clamp(controller.getRawAxis(2), -1, 1)) * 0.55;
+      double y = yFilter.calculate(MathUtil.clamp(controller.getRawAxis(1), -1, 1)) * -0.75;
       
       drive.tankDrive(y - x, y + x);
 
