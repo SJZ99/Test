@@ -4,6 +4,9 @@
 
 package frc.robot;
 
+import com.ctre.phoenix.motorcontrol.ControlMode;
+import com.ctre.phoenix.motorcontrol.NeutralMode;
+import com.ctre.phoenix.motorcontrol.can.VictorSPX;
 import com.ctre.phoenix.motorcontrol.can.WPI_TalonFX;
 import com.ctre.phoenix.motorcontrol.can.WPI_TalonSRX;
 import com.ctre.phoenix.motorcontrol.can.WPI_VictorSPX;
@@ -11,8 +14,10 @@ import com.ctre.phoenix.motorcontrol.can.WPI_VictorSPX;
 import edu.wpi.cscore.UsbCamera;
 import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.wpilibj.Joystick;
+import edu.wpi.first.wpilibj.PowerDistributionPanel;
 import edu.wpi.first.wpilibj.SlewRateLimiter;
 import edu.wpi.first.wpilibj.TimedRobot;
+import edu.wpi.first.wpilibj.Victor;
 import edu.wpi.first.wpilibj.XboxController;
 import edu.wpi.first.wpilibj.drive.DifferentialDrive;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
@@ -27,7 +32,8 @@ import edu.wpi.first.wpiutil.math.MathUtil;
  */
 public class Robot extends TimedRobot {
 
-  public static boolean isJoystick = true;
+  public static boolean isJoystick = false;
+
   public static boolean isSyzygy = true; 
 
 
@@ -41,8 +47,11 @@ public class Robot extends TimedRobot {
   DifferentialDrive drive;
   Joystick joy;
   XboxController controller;
-  SlewRateLimiter yFilter = new SlewRateLimiter(1.8);
-  SlewRateLimiter zFilter = new SlewRateLimiter(1.8);
+  PowerDistributionPanel pdp = new PowerDistributionPanel();
+
+  VictorSPX[] intake = new VictorSPX[3];
+  // SlewRateLimiter yFilter = new SlewRateLimiter(1.8);
+  // SlewRateLimiter zFilter = new SlewRateLimiter(1.8);
  
 
   /**
@@ -51,16 +60,27 @@ public class Robot extends TimedRobot {
    */
   @Override
   public void robotInit() {
+    intake[0] = new VictorSPX(7);
+    intake[1] = new VictorSPX(1);
+    intake[2] = new VictorSPX(2);
+    for(int i = 1; i < 3; i++){
+      intake[i].setInverted(true);
+      intake[i].configPeakOutputForward(0.6);
+      intake[i].configPeakOutputReverse(-0.6);
+    }
+    intake[0].configPeakOutputForward(0.9);
+    intake[0].configPeakOutputReverse(-0.9);
     if(isSyzygy){
       chassis = new WPI_TalonFX[4];
       for(int i = 18; i < 22; i++){
         chassis[i - 18] = new WPI_TalonFX(i);
         chassis[i - 18].configFactoryDefault();
         chassis[i - 18].setInverted(true);
+        // chassis[i - 18].setNeutralMode(NeutralMode.Brake);
       }
       chassis[0].follow(chassis[1]);
       chassis[2].follow(chassis[3]);
-      drive = new DifferentialDrive(chassis[2], chassis[0]);
+      drive = new DifferentialDrive(chassis[1], chassis[3]);
 
     }else{
       left = new WPI_TalonSRX(0);
@@ -71,6 +91,8 @@ public class Robot extends TimedRobot {
       leftF.configFactoryDefault();
       right.configFactoryDefault();
       rightF.configFactoryDefault();
+      // left.setNeutralMode(NeutralMode.Brake);
+      // right.setNeutralMode(NeutralMode.Brake);
       rightF.follow(right);
       leftF.follow(left);
       right.setInverted(true);
@@ -78,7 +100,6 @@ public class Robot extends TimedRobot {
       left.setInverted(true);
       leftF.setInverted(true);
       drive = new DifferentialDrive(left, right);
-
     }
     // leftF.setVoltage(10);
     // left.setVoltage(10);
@@ -86,7 +107,7 @@ public class Robot extends TimedRobot {
     if (isJoystick) {
       joy = new Joystick(0);
     } else {
-      controller = new XboxController(0);
+      controller = new XboxController(1);
     }
   }
 
@@ -140,16 +161,44 @@ public class Robot extends TimedRobot {
   @Override
   public void teleopPeriodic() {
     if(isJoystick){
-      drive.arcadeDrive(yFilter.calculate(joy.getY())*0.7, zFilter.calculate(joy.getZ())*-0.6);
+      drive.arcadeDrive(joy.getY()*-0.8, joy.getZ()*-0.6);
+      if(joy.getRawButton(7) && pdp.getCurrent(9) < 35){
+        intake[0].set(ControlMode.PercentOutput, -0.8);
+        intake[1].set(ControlMode.PercentOutput, 0.5);
+        intake[2].set(ControlMode.PercentOutput, 0.6);
+      }else if(joy.getRawButton(2) && pdp.getCurrent(9) < 35){
+        intake[0].set(ControlMode.PercentOutput, 0.8);
+        intake[1].set(ControlMode.PercentOutput, -0.5);
+        intake[2].set(ControlMode.PercentOutput, -0.6);
+      }else{
+        intake[0].set(ControlMode.PercentOutput, 0);
+        intake[1].set(ControlMode.PercentOutput, 0);
+        intake[2].set(ControlMode.PercentOutput, 0);
+      }
       // drive.arcadeDrive(joy.getY() * 0.7, joy.getZ()* -0.5);
       // drive.curvatureDrive(joy.getY()*0.6, joy.getZ()*0.5, joy.getTrigger());
     }else{
-      double x = yFilter.calculate(MathUtil.clamp(controller.getRawAxis(2), -1, 1) * 0.6);
-      double y = zFilter.calculate(MathUtil.clamp(controller.getRawAxis(1), -1, 1) * 0.6);
+      double x = MathUtil.clamp(controller.getRawAxis(2), -1, 1) * 0.55;
+      double y = MathUtil.clamp(controller.getRawAxis(1), -1, 1) * -0.75;
       
       drive.tankDrive(y - x, y + x);
+
+      if(controller.getRawButton(5) && pdp.getCurrent(9) < 35){
+        intake[0].set(ControlMode.PercentOutput, -0.9);
+        intake[1].set(ControlMode.PercentOutput, 0.5);
+        intake[2].set(ControlMode.PercentOutput, 0.6);      
+      }else if(controller.getRawButton(6)  && pdp.getCurrent(9) < 35){
+        intake[0].set(ControlMode.PercentOutput, 0.8);
+        intake[1].set(ControlMode.PercentOutput, -0.5);
+        intake[2].set(ControlMode.PercentOutput, -0.6);   
+      }else{
+        intake[0].set(ControlMode.PercentOutput, 0);
+        intake[1].set(ControlMode.PercentOutput, 0);
+        intake[2].set(ControlMode.PercentOutput, 0);
+      }
     }
   }
+
 
   /** This function is called once when the robot is disabled. */
   @Override
