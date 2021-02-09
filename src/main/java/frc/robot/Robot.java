@@ -32,7 +32,7 @@ import edu.wpi.first.wpiutil.math.MathUtil;
  */
 public class Robot extends TimedRobot {
 
-  public static boolean isJoystick = true;
+  public static boolean isJoystick = false;
 
   public static boolean isSyzygy = true; 
 
@@ -163,11 +163,11 @@ public class Robot extends TimedRobot {
     if(isJoystick){
       drive.arcadeDrive(yFilter.calculate(joy.getY())*-0.8, zFilter.calculate(joy.getZ())*-0.6);
       if(joy.getRawButton(7) && pdp.getCurrent(9) < 35){
-        intake[0].set(ControlMode.PercentOutput, -0.8);
+        intake[0].set(ControlMode.PercentOutput, -0.9);
         intake[1].set(ControlMode.PercentOutput, 0.5);
         intake[2].set(ControlMode.PercentOutput, 0.6);
       }else if(joy.getRawButton(2) && pdp.getCurrent(9) < 35){
-        intake[0].set(ControlMode.PercentOutput, 0.8);
+        intake[0].set(ControlMode.PercentOutput, 0.9);
         intake[1].set(ControlMode.PercentOutput, -0.5);
         intake[2].set(ControlMode.PercentOutput, -0.6);
       }else{
@@ -188,7 +188,7 @@ public class Robot extends TimedRobot {
         intake[1].set(ControlMode.PercentOutput, 0.5);
         intake[2].set(ControlMode.PercentOutput, 0.6);      
       }else if(controller.getRawButton(6)  && pdp.getCurrent(9) < 35){
-        intake[0].set(ControlMode.PercentOutput, 0.8);
+        intake[0].set(ControlMode.PercentOutput, 0.9);
         intake[1].set(ControlMode.PercentOutput, -0.5);
         intake[2].set(ControlMode.PercentOutput, -0.6);   
       }else{
